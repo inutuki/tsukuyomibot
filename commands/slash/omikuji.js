@@ -1,31 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { $botOwnerIds, $omikujiChannelId } from "../../config.js";
 
-// --- omikujiコマンドの定義 ---
-export const data = new SlashCommandBuilder()
-  .setName("omikuji")
-  .setDescription("おみくじを引きます")
-  // サブコマンドを追加
-  .addSubcommand(subcommand =>
-    subcommand.setName("preview")
-      .setDescription("運勢のプレビューを表示します（管理者限定）")
-      .addStringOption(option =>
-        option.setName("fortune")
-          .setDescription("表示する運勢を選択してください")
-          .setRequired(true)
-          .addChoices(
-            { name: "大吉", value: "大吉" },
-            { name: "中吉", value: "中吉" },
-            { name: "小吉", value: "小吉" },
-            { name: "吉", value: "吉" },
-            { name: "末吉", value: "末吉" },
-            { name: "凶", value: "凶" },
-            { name: "大凶", value: "大凶" },
-          )
-      )
-  )
-  .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands);
-
 // --- 運勢の定義 ---
 const responses = {
   大吉: `# 【大吉】
@@ -116,29 +91,59 @@ const responses = {
 **ラッキー**： 灰色・深呼吸・お守り`
 };
 
+// --- コマンド定義 ---
+export const data = new SlashCommandBuilder()
+  .setName("omikuji")
+  .setDescription("おみくじ機能")
+  // 1. 通常のおみくじを引くサブコマンド
+  .addSubcommand(sub =>
+    sub.setName("draw")
+      .setDescription("おみくじを引きます")
+  )
+  // 2. プレビュー用サブコマンド
+  .addSubcommand(sub =>
+    sub.setName("preview")
+      .setDescription("運勢のプレビューを表示します（管理者限定）")
+      .addStringOption(option =>
+        option.setName("fortune")
+          .setDescription("表示する運勢を選択してください")
+          .setRequired(true)
+          .addChoices(
+            ...Object.keys(responses).map(key => ({ name: key, value: key }))
+          )
+      )
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands);
+
 export async function execute(interaction) {
-  // チャンネルチェック
-  if (interaction.channelId !== $omikujiChannelId) {
-    return await interaction.reply({ content: "❌ このコマンドは特定のチャンネルでのみ使用できます。", ephemeral: true });
+  // チャンネルチェック (配列に含まれているか確認)
+  if (!$omikujiChannelId.includes(interaction.channelId)) {
+    return await interaction.reply({ 
+      content: "❌ このコマンドは特定のチャンネルでのみ使用できます。", 
+      ephemeral: true 
+    });
   }
 
-  // サブコマンドの取得（サブコマンドがない場合は null になるよう設定）
-  const subcommand = interaction.options.getSubcommand(false);
+  const subcommand = interaction.options.getSubcommand();
 
   // --- プレビューモードの処理 ---
   if (subcommand === "preview") {
     if (!$botOwnerIds.includes(interaction.user.id)) {
-      return await interaction.reply({ content: "❌ このサブコマンドはボットオーナーのみ使用できます。", ephemeral: true });
+      return await interaction.reply({ 
+        content: "❌ このサブコマンドはボットオーナーのみ使用できます。", 
+        ephemeral: true 
+      });
     }
     const fortune = interaction.options.getString("fortune");
     const replyMessage = responses[fortune] || "指定された運勢は存在しません。";
     return await interaction.reply({ content: replyMessage, ephemeral: true });
   }
 
-  // --- 通常のおみくじ処理（サブコマンドなしの場合） ---
-  const fortunes = Object.keys(responses);
-  const result = fortunes[Math.floor(Math.random() * fortunes.length)];
-  const replyMessage = responses[result];
-
-  await interaction.reply(replyMessage);
+  // --- 通常のおみくじ処理 (draw) ---
+  if (subcommand === "draw") {
+    const fortunes = Object.keys(responses);
+    const result = fortunes[Math.floor(Math.random() * fortunes.length)];
+    const replyMessage = responses[result];
+    await interaction.reply(replyMessage);
+  }
 }
