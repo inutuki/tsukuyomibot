@@ -62,7 +62,7 @@ client.once("ready", async () => {
     // --- スラッシュコマンドの同期 ---
     const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
     try {
-        await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
+        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
         console.log("スラッシュコマンドの同期完了");
     } catch (error) {
         console.error("同期エラー:", error);
