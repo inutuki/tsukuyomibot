@@ -1,9 +1,29 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 
 // --- omikujiコマンドの定義 ---
 export const data = new SlashCommandBuilder()
   .setName("omikuji")
-  .setDescription("おみくじを引きます");
+  .setDescription("おみくじを引きます")
+  // --- プレビュー用サブコマンドの追加 ---
+  .addSubcommand(subcommand =>
+    subcommand.setName("preview")
+      .setDescription("運勢のプレビューを表示します")
+      .setpermission(PermissionFlagsBits.Administrator)
+      .addStringOption(option =>
+        option.setName("fortune")
+          .setDescription("表示する運勢を選択してください")
+          .setRequired(true)
+          .addChoices(
+            { name: "大吉", value: "大吉" },
+            { name: "中吉", value: "中吉" },
+            { name: "小吉", value: "小吉" },
+            { name: "吉", value: "吉" },
+            { name: "末吉", value: "末吉" },
+            { name: "凶", value: "凶" },
+            { name: "大凶", value: "大凶" },
+          )
+      )
+  );
 
 // --- 運勢の定義 ---
 const responses = {
@@ -102,4 +122,12 @@ export async function execute(interaction) {
   const replyMessage = responses[result] || "今日は何が起こるかわかりませんね！";
 
   await interaction.reply(replyMessage);
+}
+
+// --- プレビュー用関数 ---
+export function preview(fortune) {
+  if (responses[fortune]) {
+    return responses[fortune];
+  }
+  return "指定された運勢は存在しません。";
 }
