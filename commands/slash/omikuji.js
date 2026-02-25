@@ -5,10 +5,10 @@ import { $botOwnerIds, $omikujiChannelId } from "../../config.js";
 export const data = new SlashCommandBuilder()
   .setName("omikuji")
   .setDescription("おみくじを引きます")
-  // --- プレビュー用サブコマンドの追加 ---
+  // サブコマンドを追加
   .addSubcommand(subcommand =>
     subcommand.setName("preview")
-      .setDescription("運勢のプレビューを表示します")
+      .setDescription("運勢のプレビューを表示します（管理者限定）")
       .addStringOption(option =>
         option.setName("fortune")
           .setDescription("表示する運勢を選択してください")
@@ -24,7 +24,6 @@ export const data = new SlashCommandBuilder()
           )
       )
   )
-  // --- コマンドの使用を許可するデフォルト権限を指定 ---
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands);
 
 // --- 運勢の定義 ---
@@ -118,12 +117,13 @@ const responses = {
 };
 
 export async function execute(interaction) {
- // --- コマンドが特定のチャンネルでのみ使用可能かのチェック ---
+  // チャンネルチェック
   if (interaction.channelId !== $omikujiChannelId) {
     return await interaction.reply({ content: "❌ このコマンドは特定のチャンネルでのみ使用できます。", ephemeral: true });
   }
-  // --- サブコマンドの取得 ---
-  const subcommand = interaction.options.getSubcommand();
+
+  // サブコマンドの取得（サブコマンドがない場合は null になるよう設定）
+  const subcommand = interaction.options.getSubcommand(false);
 
   // --- プレビューモードの処理 ---
   if (subcommand === "preview") {
@@ -135,7 +135,7 @@ export async function execute(interaction) {
     return await interaction.reply({ content: replyMessage, ephemeral: true });
   }
 
-  // --- 通常のおみくじ処理 ---
+  // --- 通常のおみくじ処理（サブコマンドなしの場合） ---
   const fortunes = Object.keys(responses);
   const result = fortunes[Math.floor(Math.random() * fortunes.length)];
   const replyMessage = responses[result];
