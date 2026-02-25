@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { $botOwnerIds } from "../../config.js";
+import { $botOwnerIds, $omikujiChannelId } from "../../config.js";
 
 // --- omikujiコマンドの定義 ---
 export const data = new SlashCommandBuilder()
@@ -118,8 +118,12 @@ const responses = {
 };
 
 export async function execute(interaction) {
+ // --- コマンドが特定のチャンネルでのみ使用可能かのチェック ---
+  if (interaction.channelId !== $omikujiChannelId) {
+    return await interaction.reply({ content: "❌ このコマンドは特定のチャンネルでのみ使用できます。", ephemeral: true });
+  }
   // --- サブコマンドの取得 ---
-  const subcommand = interaction.options.getSubcommand(false);
+  const subcommand = interaction.options.getSubcommand();
 
   // --- プレビューモードの処理 ---
   if (subcommand === "preview") {
