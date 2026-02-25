@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import { $botOwnerIds } from "../../config.js";
 
 // --- omikujiコマンドの定義 ---
 export const data = new SlashCommandBuilder()
@@ -8,7 +9,6 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand.setName("preview")
       .setDescription("運勢のプレビューを表示します")
-      .setpermission(PermissionFlagsBits.Administrator)
       .addStringOption(option =>
         option.setName("fortune")
           .setDescription("表示する運勢を選択してください")
@@ -23,7 +23,9 @@ export const data = new SlashCommandBuilder()
             { name: "大凶", value: "大凶" },
           )
       )
-  );
+  )
+  // --- コマンドの使用を許可するデフォルト権限を指定 ---
+  .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands);
 
 // --- 運勢の定義 ---
 const responses = {
@@ -115,19 +117,24 @@ const responses = {
 **ラッキー**： 灰色・深呼吸・お守り`
 };
 
-// --- コマンドの実行内容 ---
 export async function execute(interaction) {
+  // --- サブコマンドの取得 ---
+  const subcommand = interaction.options.getSubcommand(false);
+
+  // --- プレビューモードの処理 ---
+  if (subcommand === "preview") {
+    if (!$botOwnerIds.includes(interaction.user.id)) {
+      return await interaction.reply({ content: "❌ このサブコマンドはボットオーナーのみ使用できます。", ephemeral: true });
+    }
+    const fortune = interaction.options.getString("fortune");
+    const replyMessage = responses[fortune] || "指定された運勢は存在しません。";
+    return await interaction.reply({ content: replyMessage, ephemeral: true });
+  }
+
+  // --- 通常のおみくじ処理 ---
   const fortunes = Object.keys(responses);
   const result = fortunes[Math.floor(Math.random() * fortunes.length)];
-  const replyMessage = responses[result] || "今日は何が起こるかわかりませんね！";
+  const replyMessage = responses[result];
 
   await interaction.reply(replyMessage);
-}
-
-// --- プレビュー用関数 ---
-export function preview(fortune) {
-  if (responses[fortune]) {
-    return responses[fortune];
-  }
-  return "指定された運勢は存在しません。";
 }
